@@ -26,18 +26,12 @@ func CollectHashOf(directory string) map[string]string {
 	}
 
 	result := make(map[string]string)
-	//c := make(chan map[string]string)
 	cHash := make(chan HashPath)
-
-	ndirectory := 0
 	nfiles := 0
 	for _, f := range files {
 		path := directory + "/" + f.Name()
 		if f.IsDir() {
-			ndirectory = ndirectory + 1
 			submap := CollectHashOf(path)
-			//	c <- submap
-			//}()
 			for kHash, vPath := range submap {
 				if val, exist := result[kHash]; exist {
 					result[kHash] = val + ", " + vPath
@@ -45,19 +39,11 @@ func CollectHashOf(directory string) map[string]string {
 					result[kHash] = vPath
 				}
 			}
-			//cpath <- path
 		} else {
 			nfiles = nfiles + 1
 			go func() {
 				cHash <- HashPath{getHash(path), path}
 			}()
-			/*hash := getHash(path)
-			if val, exist := result[hash]; exist {
-				result[hash] = val + ", " + path
-			} else {
-				result[hash] = path
-			}*/
-			// fmt.Println(":: ", path, hash)
 		}
 	}
 
@@ -77,26 +63,6 @@ func CollectHashOf(directory string) map[string]string {
 			close(cHash)
 		}
 	}
-	/*
-		if ndirectory == 0 {
-			close(cHash)
-		}
-			for submap := range c {
-				nreceived = nreceived + 1
-				//fmt.Println("Received something from:", p)
-
-				for kHash, vPath := range submap {
-					if val, exist := result[kHash]; exist {
-						result[kHash] = val + ", " + vPath
-					} else {
-						result[kHash] = vPath
-					}
-				}
-				if nreceived == ndirectory {
-					close(c)
-				}
-			}*/
-
 	return result
 }
 
@@ -187,7 +153,6 @@ func getHash(filePath string) string {
 		if totalByte > MAX_BYTES_TO_HASH {
 			break
 		}
-		//fmt.Println(filePath, totalByte)
 		hasher.Write(b1)
 	}
 	return hex.EncodeToString(hasher.Sum(nil))
