@@ -3,6 +3,8 @@ package dir
 import (
 	"fmt"
 	"io"
+	"log"
+	"os"
 )
 
 // DuplicateResult gives connection between base and target path when duplicate is found
@@ -36,6 +38,19 @@ func WriteDuplicateResult(dupres []DuplicateResult, w io.Writer) {
 		}
 		for i, target := range dr.targetPath {
 			fmt.Fprintln(w, i, "+ ", target)
+		}
+	}
+}
+
+// MoveTarget marks the target for deletion (deleting is manually done by user)
+func MoveTarget(dupres []DuplicateResult) {
+	for _, dr := range dupres {
+		for _, target := range dr.targetPath {
+			newName := target + ".del"
+			err := os.Rename(target, newName)
+			if err != nil {
+				log.Print(err)
+			}
 		}
 	}
 }

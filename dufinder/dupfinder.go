@@ -45,6 +45,8 @@ func main() {
 	dir.WriteDuplicateResult(dupResult, drWriter)
 	drWriter.Flush()
 
+	dir.MoveTarget(dupResult)
+
 	elapsed := time.Since(start)
 	//log.Printf("Hashing %s took %s\n", target, elapsed)
 	log.Printf("Hashing %s and %s took %s\n", base, target, elapsed)
