@@ -18,25 +18,32 @@ type HashPath struct {
 	path string
 }
 
+// HashPaths is a tupple of hash and some paths
+type HashPaths struct {
+	hash  string
+	paths []string
+}
+
 // CollectHashOf get the hash-path values of all files in the directory.
-func CollectHashOf(directory string) map[string]string {
+func CollectHashOf(directory string) map[string]HashPaths {
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	result := make(map[string]string)
+	result := make(map[string]HashPaths)
 	cHash := make(chan HashPath)
 	nfiles := 0
 	for _, f := range files {
 		path := directory + "/" + f.Name()
 		if f.IsDir() {
 			submap := CollectHashOf(path)
-			for kHash, vPath := range submap {
+			for kHash, vHp := range submap {
 				if val, exist := result[kHash]; exist {
-					result[kHash] = val + ", " + vPath
+					val.paths = append(val.paths, vHp.paths...)
 				} else {
-					result[kHash] = vPath
+					paths := []string{path}
+					result[kHash] = HashPaths{kHash, paths}
 				}
 			}
 		} else {
@@ -54,9 +61,9 @@ func CollectHashOf(directory string) map[string]string {
 	nreceived := 0
 	for hp := range cHash {
 		if val, exist := result[hp.hash]; exist {
-			result[hp.hash] = val + ", " + hp.path
+			val.paths = append(val.paths, hp.path)
 		} else {
-			result[hp.hash] = hp.path
+			result[hp.hash] = HashPaths{hp.hash, []string{hp.path}}
 		}
 		nreceived = nreceived + 1
 		if nreceived == nfiles {
@@ -67,8 +74,8 @@ func CollectHashOf(directory string) map[string]string {
 }
 
 //CollectBySingleChannel collects hash using single channel in the implementation
-func CollectBySingleChannel(directory string) map[string]string {
-	result := make(map[string]string)
+func CollectBySingleChannel(directory string) map[string]HashPaths {
+	result := make(map[string]HashPaths)
 
 	jobsChannel := make(chan string, 100)
 	hashesChannel := make(chan HashPath, 100)
@@ -90,9 +97,9 @@ func CollectBySingleChannel(directory string) map[string]string {
 	for i := 0; i < len(paths); i++ {
 		hp := <-hashesChannel
 		if val, exist := result[hp.hash]; exist {
-			result[hp.hash] = val + ", " + hp.path
+			val.paths = append(val.paths, hp.path)
 		} else {
-			result[hp.hash] = hp.path
+			result[hp.hash] = HashPaths{hp.hash, []string{hp.path}}
 		}
 	}
 	return result
