@@ -30,8 +30,8 @@ func FindDuplicate(baseDir string, targetDir string) []DuplicateResult {
 // WriteDuplicateResult writes the dupres into a writer
 func WriteDuplicateResult(dupres []DuplicateResult, w io.Writer) {
 	for _, dr := range dupres {
-		fmt.Fprintln(w, dr.basePath)
-		fmt.Fprintln(w, "> "+dr.hash)
-		fmt.Fprintln(w, "~ "+dr.targetPath)
+		fmt.Fprintln(w, dr.hash)
+		fmt.Fprintln(w, "> "+dr.basePath)
+		fmt.Fprintln(w, "> "+dr.targetPath)
 	}
 }
