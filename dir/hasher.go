@@ -12,13 +12,14 @@ import (
 
 const MAX_BYTES_TO_HASH = 10000
 
+// HashPath is a tupple of hash and path string
 type HashPath struct {
 	hash string
 	path string
 }
 
-// PrintDirContent get the hash-path values of all files in the directory.
-func PrintDirContent(directory string) map[string]string {
+// CollectHashOf get the hash-path values of all files in the directory.
+func CollectHashOf(directory string) map[string]string {
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
 		log.Fatal(err)
@@ -27,8 +28,6 @@ func PrintDirContent(directory string) map[string]string {
 	result := make(map[string]string)
 	//c := make(chan map[string]string)
 	cHash := make(chan HashPath)
-	//	defer close(cpath)
-	//var wg sync.WaitGroup
 
 	ndirectory := 0
 	nfiles := 0
@@ -36,9 +35,7 @@ func PrintDirContent(directory string) map[string]string {
 		path := directory + "/" + f.Name()
 		if f.IsDir() {
 			ndirectory = ndirectory + 1
-			//wg.Add(1)
-			//go func() {
-			submap := PrintDirContent(path)
+			submap := CollectHashOf(path)
 			//	c <- submap
 			//}()
 			for kHash, vPath := range submap {
@@ -101,6 +98,66 @@ func PrintDirContent(directory string) map[string]string {
 			}*/
 
 	return result
+}
+
+//CollectBySingleChannel collects hash using single channel in the implementation
+func CollectBySingleChannel(directory string) map[string]string {
+	result := make(map[string]string)
+
+	jobsChannel := make(chan string, 100)
+	hashesChannel := make(chan HashPath, 100)
+	paths := collectFilePaths(directory)
+
+	for w := 1; w <= 5; w++ {
+		go hashingWorker(jobsChannel, hashesChannel)
+	}
+
+	go func() {
+		for _, p := range paths {
+			jobsChannel <- p
+			//fmt.Println(p)
+		}
+		close(jobsChannel)
+		fmt.Println("jobs channel close")
+	}()
+
+	for i := 0; i < len(paths); i++ {
+		hp := <-hashesChannel
+		if val, exist := result[hp.hash]; exist {
+			result[hp.hash] = val + ", " + hp.path
+		} else {
+			result[hp.hash] = hp.path
+		}
+	}
+	return result
+}
+
+func collectFilePaths(dir string) []string {
+	var result []string
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		path := dir + "/" + f.Name()
+		if f.IsDir() {
+			result = append(result, collectFilePaths(path)...)
+		} else {
+			result = append(result, path)
+		}
+	}
+	return result
+}
+
+func channeledHash(filePath string, resultChannel chan<- HashPath) {
+	hash := getHash(filePath)
+	resultChannel <- HashPath{hash, filePath}
+}
+
+func hashingWorker(filePaths <-chan string, hashResults chan<- HashPath) {
+	for filePath := range filePaths {
+		hashResults <- HashPath{getHash(filePath), filePath}
+	}
 }
 
 func check(e error) {
