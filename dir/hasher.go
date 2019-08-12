@@ -41,6 +41,7 @@ func CollectHashOf(directory string) map[string]HashPaths {
 			for kHash, vHp := range submap {
 				if val, exist := result[kHash]; exist {
 					val.paths = append(val.paths, vHp.paths...)
+					result[kHash] = val
 				} else {
 					paths := []string{path}
 					result[kHash] = HashPaths{kHash, paths}
@@ -62,6 +63,7 @@ func CollectHashOf(directory string) map[string]HashPaths {
 	for hp := range cHash {
 		if val, exist := result[hp.hash]; exist {
 			val.paths = append(val.paths, hp.path)
+			result[hp.hash] = val
 		} else {
 			result[hp.hash] = HashPaths{hp.hash, []string{hp.path}}
 		}
@@ -98,6 +100,7 @@ func CollectBySingleChannel(directory string) map[string]HashPaths {
 		hp := <-hashesChannel
 		if val, exist := result[hp.hash]; exist {
 			val.paths = append(val.paths, hp.path)
+			result[hp.hash] = val
 		} else {
 			result[hp.hash] = HashPaths{hp.hash, []string{hp.path}}
 		}
